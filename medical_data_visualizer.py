@@ -7,25 +7,25 @@ import numpy as np
 df = pd.read_csv('medical_examination.csv')
 
 # 2
-df['overweight'] = np.where((df['weight'] / np.square(df['height'] / 100)) > 25, 1, 0)
+df['overweight'] = (df['weight'] / ((df['height'] / 100) ** 2)).apply(lambda x : 1 if x > 25 else 0)
 
 # 3
-df['cholesterol'] = np.where(df['cholesterol'] == 1, 0, 1)
-df['gluc'] = np.where(df['gluc'] == 1, 0, 1)
+df['cholesterol'] = df['cholesterol'].apply(lambda x: 0 if x == 1 else 1)
+df['gluc'] = df['gluc'].apply(lambda x: 0 if x == 1 else 1)
 
 # 4
 def draw_cat_plot():
     # 5
-    df_cat = pd.melt(df, id_vars = ['cardio'], value_vars = ['active', 'alco', 'cholesterol', 'gluc', 'overweight', 'smoke'])
+    df_cat = pd.melt(df, id_vars = ['cardio'], value_vars = ['cholesterol', 'gluc', 'smoke', 'alco', 'active', 'overweight'])
 
 
     # 6
-    #df_cat = None
+    df_cat['total'] = 1
+    df_cat = df_cat.groupby(['cardio', 'variable', 'value'], as_index = False).count() 
 
 
     # 7
-    figure = sns.catplot(x = 'variable', kind = 'count', hue = 'value', data = df_cat, col = 'cardio')
-    figure.set_axis_labels('variable', 'total')
+    figure = sns.catplot(x = 'variable', y = 'total', kind = 'bar', hue = 'value', data = df_cat, col = 'cardio').fig
 
 
     # 8
@@ -44,15 +44,15 @@ def draw_heat_map():
         (df['ap_lo'] <= df['ap_hi']) &
         (df['height'] >= df['height'].quantile(0.025)) &
         (df['height'] <= df['height'].quantile(0.975)) &
-        (df['weight'] <= df['weight'].quantile(0.025)) &
+        (df['weight'] >= df['weight'].quantile(0.025)) &
         (df['weight'] <= df['weight'].quantile(0.975))
     ]
 
     # 12
-    corr = df_heat.corr()
+    corr = df_heat.corr(method = 'pearson')
 
     # 13
-    mask = np.triu(np.ones_like(corr, dtype = bool))
+    mask = np.triu(corr)
 
 
 
@@ -60,8 +60,7 @@ def draw_heat_map():
     fig, ax = plt.subplots(figsize = (12, 12))
 
     # 15
-    sns.heatmap(corr, vmin = 0, vmax = 0.25, fmt = '.1f',
-                linewidth = 1, annot = True, square = True, mask = mask, cbar_kws = {'shrink': 0.82})
+    sns.heatmap(corr, linewidths = 1, annot = True, square = True, mask = mask, fmt = '.1f', center = 0.08, cbar_kws = {'shrink':0.5})
 
 
     # 16
